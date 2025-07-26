@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Question, UserAnswer } from '@/types/exam'
 import { splitQuestionForInputs } from '@/lib/scoring'
 
@@ -32,6 +32,17 @@ export function QuestionCard({
     })
     return initialAnswers
   })
+
+  // 問題が変わった際に回答をリセット
+  useEffect(() => {
+    const initialAnswers: { [blankId: string]: string } = {}
+    userAnswers.forEach(answer => {
+      if (answer.questionId === question.id) {
+        initialAnswers[answer.blankId] = answer.answer
+      }
+    })
+    setAnswers(initialAnswers)
+  }, [question.id, userAnswers])
 
   // 安全な初期化 - question.blanksがundefinedの場合は空配列
   const questionBlanks = useMemo(() => question?.blanks || [], [question?.blanks])

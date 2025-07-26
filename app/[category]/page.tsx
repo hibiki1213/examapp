@@ -92,14 +92,16 @@ export default function CategoryPage() {
       // 全問題完了
       setSession({
         ...session,
-        isCompleted: true
+        isCompleted: true,
+        endTime: new Date()
       })
       setCurrentResult(null)
     } else {
-      // 次の問題へ
+      // 次の問題へ（回答をクリア）
       setSession({
         ...session,
-        currentQuestionIndex: nextIndex
+        currentQuestionIndex: nextIndex,
+        answers: [] // 前の問題の回答をクリア
       })
       setCurrentResult(null)
     }

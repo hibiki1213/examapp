@@ -96,7 +96,7 @@ export default function BusinessStrategyCategoryPage() {
       setSession({
         ...session,
         currentQuestionIndex: nextIndex,
-        answers: []
+        answers: [] // 前の問題の回答をクリア
       })
     }
 
