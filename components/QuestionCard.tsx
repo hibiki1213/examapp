@@ -33,6 +33,8 @@ export function QuestionCard({
     return initialAnswers
   })
 
+  // 安全な初期化 - question.blanksがundefinedの場合は空配列
+  const questionBlanks = question?.blanks || []
   const questionParts = splitQuestionForInputs(question.text)
 
   const handleInputChange = useCallback((blankId: string, value: string) => {
@@ -44,7 +46,7 @@ export function QuestionCard({
       answer => answer.questionId !== question.id
     )
     
-    question.blanks.forEach(blank => {
+    questionBlanks.forEach(blank => {
       if (newAnswers[blank.id]) {
         updatedUserAnswers.push({
           questionId: question.id,
@@ -55,11 +57,19 @@ export function QuestionCard({
     })
 
     onAnswersChange(updatedUserAnswers)
-  }, [answers, userAnswers, question, onAnswersChange])
+  }, [answers, userAnswers, question, questionBlanks, onAnswersChange])
 
-  const allAnswersFilled = question.blanks.every(blank => 
+  const allAnswersFilled = questionBlanks.every(blank => 
     answers[blank.id]?.trim().length > 0
   )
+
+  if (!question) {
+    return (
+      <div className="text-center">
+        <p className="text-gray-600">問題が見つかりません</p>
+      </div>
+    )
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -97,7 +107,8 @@ export function QuestionCard({
                 </span>
               )
             } else {
-              const blank = question.blanks[part.blankIndex!]
+              const blank = questionBlanks[part.blankIndex!]
+              if (!blank) return null
               return (
                 <span key={index} className="inline-block">
                   <input

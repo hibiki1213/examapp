@@ -1,4 +1,6 @@
 import { Category, Question, BlankField, ExamData } from '@/types/exam'
+import fs from 'fs/promises'
+import path from 'path'
 
 // カテゴリマッピング
 const CATEGORY_MAPPING = {
@@ -279,4 +281,306 @@ function extractAnswersFromText(text: string): string[] {
   
   // フォールバック：空の配列を返す
   return []
+} 
+
+/**
+ * 企業戦略論用のexam2.mdファイルをパースする
+ */
+export async function parseExam2Data(): Promise<Category[]> {
+  try {
+    const filePath = path.join(process.cwd(), 'exam2.md')
+    const fileContent = await fs.readFile(filePath, 'utf-8')
+    
+    console.log('Loading exam2 data from file...')
+    console.log('File loaded, parsing data...')
+    
+    // 問題セクションと解答セクションを分離
+    const sections = fileContent.split('### **テスト解答集**')
+    const problemsSection = sections[0]
+    const answersSection = sections[1] || ''
+    
+    // 問題をパース
+    const questionsByCategory = parseProblemsSection2(problemsSection)
+    
+    // 解答をパース
+    const answersByCategory = parseAnswersSection2(answersSection)
+    
+    // カテゴリを作成
+    const categories: Category[] = []
+    
+    Object.keys(questionsByCategory).forEach(categoryName => {
+      const category = saveCategory2(
+        categoryName,
+        questionsByCategory[categoryName],
+        answersByCategory[categoryName] || {}
+      )
+      if (category.questions.length > 0) {
+        categories.push(category)
+      }
+    })
+    
+    console.log(`Data parsed successfully: ${categories.length} categories`)
+    return categories
+  } catch (error) {
+    console.error('Error parsing exam2 data:', error)
+    throw error
+  }
+}
+
+/**
+ * 企業戦略論の問題セクションをパース
+ */
+function parseProblemsSection2(content: string): { [categoryName: string]: { questionNumber: number, text: string }[] } {
+  const questionsByCategory: { [categoryName: string]: { questionNumber: number, text: string }[] } = {}
+  const lines = content.split('\n')
+  
+  let currentCategory = ''
+  let inQuestion = false
+  let currentQuestionText = ''
+  let currentQuestionNumber = 0
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // カテゴリヘッダーを検出
+    const categoryMatch = line.match(/#### \*\*第(\d+)章\s+(.+?)\*\*/)
+    if (categoryMatch) {
+      // 前の問題を保存
+      if (inQuestion && currentQuestionText.trim() && currentCategory) {
+        if (!questionsByCategory[currentCategory]) {
+          questionsByCategory[currentCategory] = []
+        }
+        questionsByCategory[currentCategory].push({
+          questionNumber: currentQuestionNumber,
+          text: currentQuestionText.trim()
+        })
+      }
+      
+      const chapterNum = categoryMatch[1]
+      const chapterTitle = categoryMatch[2]
+      currentCategory = `第${chapterNum}章 ${chapterTitle}`
+      inQuestion = false
+      currentQuestionText = ''
+      currentQuestionNumber = 0
+      continue
+    }
+    
+    // 問題を検出
+    const questionMatch = line.match(/^\*\*問題(\d+)\*\*$/)
+    if (questionMatch) {
+      // 前の問題を保存
+      if (inQuestion && currentQuestionText.trim() && currentCategory) {
+        if (!questionsByCategory[currentCategory]) {
+          questionsByCategory[currentCategory] = []
+        }
+        questionsByCategory[currentCategory].push({
+          questionNumber: currentQuestionNumber,
+          text: currentQuestionText.trim()
+        })
+      }
+      
+      currentQuestionNumber = parseInt(questionMatch[1])
+      inQuestion = true
+      currentQuestionText = ''
+      continue
+    }
+    
+    // 問題の内容を蓄積
+    if (inQuestion && line && !line.startsWith('---') && !line.startsWith('### ')) {
+      if (currentQuestionText) {
+        currentQuestionText += '\n' + line
+      } else {
+        currentQuestionText = line
+      }
+    }
+  }
+  
+  // 最後の問題を保存
+  if (inQuestion && currentQuestionText.trim() && currentCategory) {
+    if (!questionsByCategory[currentCategory]) {
+      questionsByCategory[currentCategory] = []
+    }
+    questionsByCategory[currentCategory].push({
+      questionNumber: currentQuestionNumber,
+      text: currentQuestionText.trim()
+    })
+  }
+  
+  return questionsByCategory
+}
+
+/**
+ * 企業戦略論の解答セクションをパース
+ */
+function parseAnswersSection2(content: string): { [categoryName: string]: { [questionNumber: number]: string[] } } {
+  const answersByCategory: { [categoryName: string]: { [questionNumber: number]: string[] } } = {}
+  const lines = content.split('\n')
+  
+  let currentCategory = ''
+  let currentQuestionNumber = 0
+  
+  console.log('Starting parseAnswersSection2...')
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // カテゴリヘッダーを検出（修正された正規表現）
+    const categoryMatch = line.match(/^#### \*\*第(\d+)章\s+(.+?)\*\*$/)
+    if (categoryMatch) {
+      const chapterNum = categoryMatch[1]
+      const chapterTitle = categoryMatch[2]
+      currentCategory = `第${chapterNum}章 ${chapterTitle}`
+      answersByCategory[currentCategory] = {}
+      console.log(`Found category: ${currentCategory}`)
+      continue
+    }
+    
+    // 解答を検出
+    const answerMatch = line.match(/^\*\*解答(\d+)\*\*$/)
+    if (answerMatch) {
+      currentQuestionNumber = parseInt(answerMatch[1])
+      console.log(`Found answer ${currentQuestionNumber} for category: ${currentCategory}`)
+      
+      // 次の行から解答を読み取り
+      let answerText = ''
+      let j = i + 1
+      while (j < lines.length) {
+        const answerLine = lines[j].trim()
+        // 次の解答または次のカテゴリまで読み続ける
+        if (answerLine.match(/^\*\*解答\d+\*\*$/) || answerLine.match(/^#### \*\*第\d+章/)) {
+          break
+        }
+        if (answerLine) {
+          if (answerText) {
+            answerText += '\n' + answerLine
+          } else {
+            answerText = answerLine
+          }
+        }
+        j++
+      }
+      
+      if (currentCategory && answerText) {
+        // 複数の解答がある場合の処理を改善
+        let answers: string[] = []
+        
+        // 番号付きリスト形式の場合（例：1. **答え** 2. **答え**）
+        const numberedListMatch = answerText.match(/\d+\.\s*\*\*([^*]+)\*\*/g)
+        if (numberedListMatch) {
+          answers = numberedListMatch.map(match => {
+            const answerMatch = match.match(/\*\*([^*]+)\*\*/)
+            return answerMatch ? answerMatch[1].trim() : ''
+          }).filter(ans => ans)
+        } else {
+          // 通常の形式（カンマ区切りや改行区切り）
+          answers = answerText.split(/[、，\n]/).map(ans => ans.trim()).filter(ans => ans)
+        }
+        
+        answersByCategory[currentCategory][currentQuestionNumber] = answers
+        console.log(`Stored answers for question ${currentQuestionNumber}:`, answers)
+      }
+      i = j - 1 // ループを調整
+    }
+  }
+  
+  console.log('Final answersByCategory:', answersByCategory)
+  return answersByCategory
+}
+
+/**
+ * 企業戦略論用のカテゴリ作成
+ */
+function saveCategory2(
+  categoryName: string,
+  questions: { questionNumber: number, text: string }[],
+  answers: { [questionNumber: number]: string[] }
+): Category {
+  const categoryId = createCategoryId2(categoryName)
+  const parsedQuestions: Question[] = []
+  
+  console.log(`Creating category: ${categoryName}`)
+  console.log(`Available answers for this category:`, answers)
+  
+  questions.forEach((questionData, index) => {
+    const { questionNumber, text } = questionData
+    const question = createQuestion2(categoryId, questionNumber, text)
+    
+    console.log(`\nProcessing question ${questionNumber}:`)
+    console.log(`Question has ${question.blanks.length} blanks`)
+    console.log(`Available answers for question ${questionNumber}:`, answers[questionNumber])
+    
+    // 解答を設定
+    if (answers[questionNumber]) {
+      question.blanks.forEach((blank, blankIndex) => {
+        if (answers[questionNumber][blankIndex]) {
+          blank.answer = answers[questionNumber][blankIndex]
+          console.log(`Set answer for blank ${blankIndex}: "${blank.answer}"`)
+        } else {
+          console.log(`No answer available for blank ${blankIndex}`)
+        }
+      })
+    } else {
+      console.log(`No answers found for question ${questionNumber}`)
+    }
+    
+    console.log(`Final question blanks:`, question.blanks.map(b => ({ id: b.id, answer: b.answer })))
+    
+    if (question.blanks.length > 0) {
+      parsedQuestions.push(question)
+    }
+  })
+  
+  console.log(`\nCategory ${categoryName} created with ${parsedQuestions.length} questions`)
+  
+  return {
+    id: categoryId,
+    name: categoryName,
+    nameEn: categoryId,
+    description: `${categoryName}の問題集`,
+    questionCount: parsedQuestions.length,
+    questions: parsedQuestions
+  }
+}
+
+/**
+ * 企業戦略論用のカテゴリID作成
+ */
+function createCategoryId2(categoryName: string): string {
+  return categoryName
+    .replace(/第(\d+)章\s*/, 'chapter-$1-')
+    .replace(/\s+/g, '-')
+    .toLowerCase()
+    .replace(/[^\w-]/g, '')
+}
+
+/**
+ * 企業戦略論用の問題作成（虫食いパターン: ____________）
+ */
+function createQuestion2(categoryId: string, questionNumber: number, questionText: string): Question {
+  // 企業戦略論の虫食いパターン（アンダースコア12個）
+  const blankPattern = /____________/g
+  const blanks: BlankField[] = []
+  
+  let match
+  let blankIndex = 0
+  
+  while ((match = blankPattern.exec(questionText)) !== null) {
+    blanks.push({
+      id: `${categoryId}-${questionNumber}-${blankIndex}`,
+      answer: '',
+      position: blankIndex,
+      placeholder: `空欄${blankIndex + 1}`
+    })
+    blankIndex++
+    console.log(`Found blank pattern: "${match[0]}"`)
+  }
+  
+  console.log(`Created ${blanks.length} blanks for question ${questionNumber}`)
+  
+  return {
+    id: `${categoryId}-${questionNumber}`,
+    category: categoryId,
+    text: questionText,
+    blanks: blanks
+  }
 } 

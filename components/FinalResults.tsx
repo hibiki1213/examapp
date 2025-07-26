@@ -8,9 +8,11 @@ interface FinalResultsProps {
   results: QuestionResult[]
   categoryName: string
   onRestart: () => void
+  homeLink?: string
+  homeLabel?: string
 }
 
-export function FinalResults({ results, categoryName, onRestart }: FinalResultsProps) {
+export function FinalResults({ results, categoryName, onRestart, homeLink = "/", homeLabel = "カテゴリ選択に戻る" }: FinalResultsProps) {
   const sessionScore = calculateSessionScore(results)
   
   const getScoreColor = (percentage: number) => {
@@ -156,7 +158,7 @@ export function FinalResults({ results, categoryName, onRestart }: FinalResultsP
           </button>
           
           <Link 
-            href="/"
+            href={homeLink}
             className="
               px-8 py-4 bg-gray-100 text-gray-700 font-semibold rounded-2xl
               hover:bg-gray-200 active:bg-gray-300
@@ -166,7 +168,7 @@ export function FinalResults({ results, categoryName, onRestart }: FinalResultsP
               text-center
             "
           >
-            カテゴリ選択に戻る
+            {homeLabel}
           </Link>
         </div>
       </div>

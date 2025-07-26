@@ -1,48 +1,74 @@
-import { promises as fs } from 'fs'
-import path from 'path'
-import { parseExamData } from './examData'
-import { ExamData } from '@/types/exam'
+import { Category } from '@/types/exam'
+import { parseExamData, parseExam2Data } from './examData'
 
-let cachedExamData: ExamData | null = null
+let cachedExamData: Category[] | null = null
+let cachedExam2Data: Category[] | null = null
 
 /**
- * exam.mdファイルを読み込んでパースされたデータを返す
+ * 財政学のexam.mdデータを読み込む
  */
-export async function loadExamData(): Promise<ExamData> {
+export async function loadExamData(): Promise<Category[]> {
   if (cachedExamData) {
     return cachedExamData
   }
-  
+
   try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
     const filePath = path.join(process.cwd(), 'exam.md')
     const fileContent = await fs.readFile(filePath, 'utf-8')
-    cachedExamData = parseExamData(fileContent)
+    const data = await parseExamData(fileContent)
+    cachedExamData = data.categories
     return cachedExamData
   } catch (error) {
-    console.error('Error loading exam data:', error)
-    // フォールバック: 空のデータを返す
-    return { categories: [] }
+    console.error('Failed to load exam data:', error)
+    return []
   }
 }
 
 /**
- * 特定のカテゴリのデータを取得
+ * 企業戦略論のexam2.mdデータを読み込む
  */
-export async function getCategoryData(categoryId: string) {
-  const examData = await loadExamData()
-  return examData.categories.find(category => category.id === categoryId)
+export async function loadExam2Data(): Promise<Category[]> {
+  if (cachedExam2Data) {
+    return cachedExam2Data
+  }
+
+  try {
+    cachedExam2Data = await parseExam2Data()
+    return cachedExam2Data
+  } catch (error) {
+    console.error('Failed to load exam2 data:', error)
+    return []
+  }
 }
 
 /**
- * 全カテゴリのリストを取得
+ * 財政学の特定カテゴリのデータを取得
  */
-export async function getAllCategories() {
-  const examData = await loadExamData()
-  return examData.categories.map(category => ({
-    id: category.id,
-    name: category.name,
-    nameEn: category.nameEn,
-    description: category.description,
-    questionCount: category.questionCount
-  }))
+export async function getCategoryData(categoryId: string): Promise<Category | null> {
+  const data = await loadExamData()
+  return data.find(category => category.id === categoryId) || null
+}
+
+/**
+ * 企業戦略論の特定カテゴリのデータを取得
+ */
+export async function getCategory2Data(categoryId: string): Promise<Category | null> {
+  const data = await loadExam2Data()
+  return data.find(category => category.id === categoryId) || null
+}
+
+/**
+ * 財政学の全カテゴリを取得
+ */
+export async function getAllCategories(): Promise<Category[]> {
+  return await loadExamData()
+}
+
+/**
+ * 企業戦略論の全カテゴリを取得
+ */
+export async function getAllCategories2(): Promise<Category[]> {
+  return await loadExam2Data()
 } 

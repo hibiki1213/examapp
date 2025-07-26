@@ -9,9 +9,7 @@ import { ResultDisplay } from '@/components/ResultDisplay'
 import { FinalResults } from '@/components/FinalResults'
 import { scoreQuestion } from '@/lib/scoring'
 
-// このコンポーネントは実際にはクライアントコンポーネントなので、
-// サーバーサイドでのデータ取得は別途実装する必要があります
-export default function CategoryPage() {
+export default function BusinessStrategyCategoryPage() {
   const params = useParams()
   const categoryId = params.category as string
 
@@ -26,7 +24,7 @@ export default function CategoryPage() {
     const fetchCategoryData = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(`/api/categories/${categoryId}`)
+        const response = await fetch(`/api/business-strategy/categories/${categoryId}`)
         
         if (!response.ok) {
           throw new Error('カテゴリが見つかりません')
@@ -87,26 +85,27 @@ export default function CategoryPage() {
     if (!session || !category) return
 
     const nextIndex = session.currentQuestionIndex + 1
-    
+
     if (nextIndex >= category.questions.length) {
-      // 全問題完了
       setSession({
         ...session,
-        isCompleted: true
+        isCompleted: true,
+        endTime: new Date()
       })
-      setCurrentResult(null)
     } else {
-      // 次の問題へ
       setSession({
         ...session,
-        currentQuestionIndex: nextIndex
+        currentQuestionIndex: nextIndex,
+        answers: []
       })
-      setCurrentResult(null)
     }
+
+    setCurrentResult(null)
   }
 
   const handleRestart = () => {
     if (!category) return
+    
     initializeSession(category)
     setCurrentResult(null)
   }
@@ -115,44 +114,43 @@ export default function CategoryPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">問題を読み込んでいます...</p>
         </div>
       </div>
     )
   }
 
-  if (error || !category) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            エラーが発生しました
-          </h2>
-          <p className="text-gray-600 mb-6">
-            {error}
-          </p>
+        <div className="text-center">
+          <p className="text-red-600 mb-4">エラーが発生しました: {error}</p>
           <Link 
-            href="/"
-            className="
-              inline-flex items-center px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl
-              hover:bg-blue-600 transition-colors duration-200
-            "
+            href="/business-strategy"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            ホームに戻る
+            ← カテゴリ一覧に戻る
           </Link>
         </div>
       </div>
     )
   }
 
-  if (!session) {
-    return null
+  if (!category || !session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">カテゴリが見つかりません</p>
+          <Link 
+            href="/business-strategy"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            ← カテゴリ一覧に戻る
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -160,21 +158,18 @@ export default function CategoryPage() {
       <div className="container mx-auto px-4 py-8">
         {/* ヘッダー */}
         <div className="text-center mb-8">
-          <div className="mb-4">
-            <Link
-              href="/"
-              className="inline-flex items-center px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              財政学のカテゴリ一覧に戻る
-            </Link>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <Link 
+            href="/business-strategy"
+            className="inline-flex items-center px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm mb-4"
+          >
+            ← 企業戦略論のカテゴリ一覧に戻る
+          </Link>
+          
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {category.name}
           </h1>
-          <p className="text-gray-600">
+          
+          <p className="text-gray-600 max-w-2xl mx-auto">
             {category.description}
           </p>
         </div>
@@ -185,8 +180,8 @@ export default function CategoryPage() {
             results={session.results}
             categoryName={category.name}
             onRestart={handleRestart}
-            homeLink="/"
-            homeLabel="財政学のカテゴリ一覧に戻る"
+            homeLink="/business-strategy"
+            homeLabel="企業戦略論のカテゴリ一覧に戻る"
           />
         ) : currentResult ? (
           <ResultDisplay
