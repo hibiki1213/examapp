@@ -77,7 +77,7 @@ export function calculateSessionScore(results: QuestionResult[]) {
 /**
  * 問題文の虫食い部分をplaceholderに置換
  */
-export function formatQuestionText(questionText: string, placeholderCount: number): string {
+export function formatQuestionText(questionText: string): string {
   let counter = 0
   return questionText.replace(/\*\*[\_]+\*\*/g, () => {
     counter++

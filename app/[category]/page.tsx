@@ -1,26 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Question, UserAnswer, QuestionResult, ExamSession } from '@/types/exam'
+import { UserAnswer, QuestionResult, ExamSession, Category } from '@/types/exam'
 import { QuestionCard } from '@/components/QuestionCard'
 import { ResultDisplay } from '@/components/ResultDisplay'
 import { FinalResults } from '@/components/FinalResults'
 import { scoreQuestion } from '@/lib/scoring'
 
-interface CategoryPageProps {
-  searchParams?: { [key: string]: string | string[] | undefined }
-}
-
 // このコンポーネントは実際にはクライアントコンポーネントなので、
 // サーバーサイドでのデータ取得は別途実装する必要があります
-export default function CategoryPage({ searchParams }: CategoryPageProps) {
+export default function CategoryPage() {
   const params = useParams()
-  const router = useRouter()
   const categoryId = params.category as string
 
-  const [category, setCategory] = useState<any>(null)
+  const [category, setCategory] = useState<Category | null>(null)
   const [session, setSession] = useState<ExamSession | null>(null)
   const [currentResult, setCurrentResult] = useState<QuestionResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -54,7 +49,7 @@ export default function CategoryPage({ searchParams }: CategoryPageProps) {
     }
   }, [categoryId])
 
-  const initializeSession = (categoryData: any) => {
+  const initializeSession = (categoryData: Category) => {
     const newSession: ExamSession = {
       categoryId: categoryData.id,
       currentQuestionIndex: 0,

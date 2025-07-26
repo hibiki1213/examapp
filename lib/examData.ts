@@ -58,7 +58,6 @@ export function parseExamData(examContent: string): ExamData {
       questions.forEach(question => {
         question.blanks.forEach((blank, index) => {
           const questionNumber = parseInt(question.id.split('-').pop() || '0')
-          const answerKey = `${questionNumber}.${index + 1}`
           if (answers[questionNumber]) {
             blank.answer = answers[questionNumber][index] || ''
           }
