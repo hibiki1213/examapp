@@ -42,6 +42,7 @@ export interface ExamSession {
   answers: UserAnswer[]
   results: QuestionResult[]
   startTime: Date
+  endTime?: Date
   isCompleted: boolean
 }
 

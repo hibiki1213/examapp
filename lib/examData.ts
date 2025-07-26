@@ -291,8 +291,8 @@ export async function parseExam2Data(): Promise<Category[]> {
     const filePath = path.join(process.cwd(), 'exam2.md')
     const fileContent = await fs.readFile(filePath, 'utf-8')
     
-    console.log('Loading exam2 data from file...')
-    console.log('File loaded, parsing data...')
+    // console.log('Loading exam2 data from file...')
+    // console.log('File loaded, parsing data...')
     
     // 問題セクションと解答セクションを分離
     const sections = fileContent.split('### **テスト解答集**')
@@ -319,7 +319,19 @@ export async function parseExam2Data(): Promise<Category[]> {
       }
     })
     
-    console.log(`Data parsed successfully: ${categories.length} categories`)
+    // 章番号順に並び替え
+    categories.sort((a, b) => {
+      const getChapterNumber = (name: string): number => {
+        const match = name.match(/第(\d+)章/)
+        return match ? parseInt(match[1]) : 999
+      }
+      
+      const chapterA = getChapterNumber(a.name)
+      const chapterB = getChapterNumber(b.name)
+      return chapterA - chapterB
+    })
+    
+    // console.log(`Data parsed successfully: ${categories.length} categories`)
     return categories
   } catch (error) {
     console.error('Error parsing exam2 data:', error)
@@ -419,7 +431,7 @@ function parseAnswersSection2(content: string): { [categoryName: string]: { [que
   let currentCategory = ''
   let currentQuestionNumber = 0
   
-  console.log('Starting parseAnswersSection2...')
+  // console.log('Starting parseAnswersSection2...')
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
@@ -431,7 +443,7 @@ function parseAnswersSection2(content: string): { [categoryName: string]: { [que
       const chapterTitle = categoryMatch[2]
       currentCategory = `第${chapterNum}章 ${chapterTitle}`
       answersByCategory[currentCategory] = {}
-      console.log(`Found category: ${currentCategory}`)
+      // console.log(`Found category: ${currentCategory}`)
       continue
     }
     
@@ -439,7 +451,7 @@ function parseAnswersSection2(content: string): { [categoryName: string]: { [que
     const answerMatch = line.match(/^\*\*解答(\d+)\*\*$/)
     if (answerMatch) {
       currentQuestionNumber = parseInt(answerMatch[1])
-      console.log(`Found answer ${currentQuestionNumber} for category: ${currentCategory}`)
+      // console.log(`Found answer ${currentQuestionNumber} for category: ${currentCategory}`)
       
       // 次の行から解答を読み取り
       let answerText = ''
@@ -477,13 +489,13 @@ function parseAnswersSection2(content: string): { [categoryName: string]: { [que
         }
         
         answersByCategory[currentCategory][currentQuestionNumber] = answers
-        console.log(`Stored answers for question ${currentQuestionNumber}:`, answers)
+        // console.log(`Stored answers for question ${currentQuestionNumber}:`, answers)
       }
       i = j - 1 // ループを調整
     }
   }
   
-  console.log('Final answersByCategory:', answersByCategory)
+  // console.log('Final answersByCategory:', answersByCategory)
   return answersByCategory
 }
 
@@ -498,39 +510,39 @@ function saveCategory2(
   const categoryId = createCategoryId2(categoryName)
   const parsedQuestions: Question[] = []
   
-  console.log(`Creating category: ${categoryName}`)
-  console.log(`Available answers for this category:`, answers)
+  // console.log(`Creating category: ${categoryName}`)
+  // console.log(`Available answers for this category:`, answers)
   
-  questions.forEach((questionData, index) => {
+  questions.forEach((questionData) => {
     const { questionNumber, text } = questionData
     const question = createQuestion2(categoryId, questionNumber, text)
     
-    console.log(`\nProcessing question ${questionNumber}:`)
-    console.log(`Question has ${question.blanks.length} blanks`)
-    console.log(`Available answers for question ${questionNumber}:`, answers[questionNumber])
+    // console.log(`\nProcessing question ${questionNumber}:`)
+    // console.log(`Question has ${question.blanks.length} blanks`)
+    // console.log(`Available answers for question ${questionNumber}:`, answers[questionNumber])
     
     // 解答を設定
     if (answers[questionNumber]) {
       question.blanks.forEach((blank, blankIndex) => {
         if (answers[questionNumber][blankIndex]) {
           blank.answer = answers[questionNumber][blankIndex]
-          console.log(`Set answer for blank ${blankIndex}: "${blank.answer}"`)
+          // console.log(`Set answer for blank ${blankIndex}: "${blank.answer}"`)
         } else {
-          console.log(`No answer available for blank ${blankIndex}`)
+          // console.log(`No answer available for blank ${blankIndex}`)
         }
       })
     } else {
-      console.log(`No answers found for question ${questionNumber}`)
+      // console.log(`No answers found for question ${questionNumber}`)
     }
     
-    console.log(`Final question blanks:`, question.blanks.map(b => ({ id: b.id, answer: b.answer })))
+    // console.log(`Final question blanks:`, question.blanks.map(b => ({ id: b.id, answer: b.answer })))
     
     if (question.blanks.length > 0) {
       parsedQuestions.push(question)
     }
   })
   
-  console.log(`\nCategory ${categoryName} created with ${parsedQuestions.length} questions`)
+  // console.log(`\nCategory ${categoryName} created with ${parsedQuestions.length} questions`)
   
   return {
     id: categoryId,
@@ -572,10 +584,10 @@ function createQuestion2(categoryId: string, questionNumber: number, questionTex
       placeholder: `空欄${blankIndex + 1}`
     })
     blankIndex++
-    console.log(`Found blank pattern: "${match[0]}"`)
+    // console.log(`Found blank pattern: "${match[0]}"`)
   }
   
-  console.log(`Created ${blanks.length} blanks for question ${questionNumber}`)
+  // console.log(`Created ${blanks.length} blanks for question ${questionNumber}`)
   
   return {
     id: `${categoryId}-${questionNumber}`,

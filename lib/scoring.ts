@@ -1,4 +1,4 @@
-import { Question, UserAnswer, QuestionResult, ExamSession } from '@/types/exam'
+import { Question, UserAnswer, QuestionResult } from '@/types/exam'
 
 /**
  * 答えを正規化（空白、大小文字の違いを無視）

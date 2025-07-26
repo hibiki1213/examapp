@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Question, UserAnswer } from '@/types/exam'
 import { splitQuestionForInputs } from '@/lib/scoring'
 
@@ -34,8 +34,8 @@ export function QuestionCard({
   })
 
   // 安全な初期化 - question.blanksがundefinedの場合は空配列
-  const questionBlanks = question?.blanks || []
-  const questionParts = splitQuestionForInputs(question.text)
+  const questionBlanks = useMemo(() => question?.blanks || [], [question?.blanks])
+  const questionParts = useMemo(() => splitQuestionForInputs(question.text), [question.text])
 
   const handleInputChange = useCallback((blankId: string, value: string) => {
     const newAnswers = { ...answers, [blankId]: value }

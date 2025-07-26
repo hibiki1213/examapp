@@ -77,7 +77,7 @@ export default function Home() {
         {/* ヘッダー */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            財政学学習アプリ
+            財政学テスト対策
           </h1>
           
           {/* スマホでのボタン（タイトル下） */}
