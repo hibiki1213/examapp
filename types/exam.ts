@@ -44,8 +44,4 @@ export interface ExamSession {
   startTime: Date
   endTime?: Date
   isCompleted: boolean
-}
-
-export interface ExamData {
-  categories: Category[]
 } 

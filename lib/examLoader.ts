@@ -13,12 +13,7 @@ export async function loadExamData(): Promise<Category[]> {
   }
 
   try {
-    const fs = await import('fs/promises')
-    const path = await import('path')
-    const filePath = path.join(process.cwd(), 'exam.md')
-    const fileContent = await fs.readFile(filePath, 'utf-8')
-    const data = await parseExamData(fileContent)
-    cachedExamData = data.categories
+    cachedExamData = await parseExamData()
     return cachedExamData
   } catch (error) {
     console.error('Failed to load exam data:', error)

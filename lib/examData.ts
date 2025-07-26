@@ -1,4 +1,4 @@
-import { Category, Question, BlankField, ExamData } from '@/types/exam'
+import { Question, BlankField, Category } from '@/types/exam'
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -34,50 +34,74 @@ const CATEGORY_MAPPING = {
 /**
  * exam.mdファイルからデータを抽出してパースする
  */
-export function parseExamData(examContent: string): ExamData {
-  const lines = examContent.split('\n')
-  const categories: Category[] = []
-  
-  // 問題セクションと回答セクションを分離
-  const problemSectionEnd = lines.findIndex(line => line.includes('### 回答集'))
-  const problemLines = lines.slice(0, problemSectionEnd)
-  const answerLines = lines.slice(problemSectionEnd)
-  
-  // 問題を解析
-  const problemsByCategory = parseProblemsSection(problemLines)
-  
-  // 回答を解析
-  const answersByCategory = parseAnswersSection(answerLines)
-  
-  // カテゴリを構築
-  for (const categoryName of Object.keys(problemsByCategory)) {
-    const mapping = CATEGORY_MAPPING[categoryName as keyof typeof CATEGORY_MAPPING]
-    if (mapping) {
-      const questions = problemsByCategory[categoryName]
-      const answers = answersByCategory[categoryName] || {}
-      
-      // 回答を問題に結合
-      questions.forEach(question => {
-        question.blanks.forEach((blank, index) => {
-          const questionNumber = parseInt(question.id.split('-').pop() || '0')
-          if (answers[questionNumber]) {
-            blank.answer = answers[questionNumber][index] || ''
-          }
+export async function parseExamData(): Promise<Category[]> {
+  try {
+    const filePath = path.join(process.cwd(), 'exam.md')
+    const examContent = await fs.readFile(filePath, 'utf-8')
+    
+    const lines = examContent.split('\n')
+    const categories: Category[] = []
+    
+    // 問題セクションと回答セクションを分離
+    const problemSectionEnd = lines.findIndex(line => line.includes('### 回答集'))
+    const problemLines = lines.slice(0, problemSectionEnd)
+    const answerLines = lines.slice(problemSectionEnd)
+    
+    // 問題を解析
+    const problemsByCategory = parseProblemsSection(problemLines)
+    
+    // 回答を解析
+    const answersByCategory = parseAnswersSection(answerLines)
+    
+    // カテゴリを構築
+    for (const categoryName of Object.keys(problemsByCategory)) {
+      const mapping = CATEGORY_MAPPING[categoryName as keyof typeof CATEGORY_MAPPING]
+      if (mapping) {
+        const questions = problemsByCategory[categoryName]
+        const answers = answersByCategory[categoryName] || {}
+        
+        // 回答を問題に結合
+        questions.forEach(question => {
+          question.blanks.forEach((blank, index) => {
+            const questionNumber = parseInt(question.id.split('-').pop() || '0')
+            if (answers[questionNumber]) {
+              blank.answer = answers[questionNumber][index] || ''
+            }
+          })
         })
-      })
-      
-      categories.push({
-        id: mapping.id,
-        name: categoryName,
-        nameEn: mapping.nameEn,
-        description: mapping.description,
-        questionCount: questions.length,
-        questions: questions
-      })
+        
+        categories.push({
+          id: mapping.id,
+          name: categoryName,
+          nameEn: mapping.nameEn,
+          description: mapping.description,
+          questionCount: questions.length,
+          questions: questions
+        })
+      }
     }
-  }
 
-  return { categories }
+    // 財政学カテゴリを適切な順序で並び替え
+    categories.sort((a, b) => {
+      const getOrder = (name: string): number => {
+        if (name.includes('財政学と政府')) return 1
+        if (name.includes('公債論')) return 2
+        if (name.includes('租税論')) return 3
+        if (name.includes('地方財政論')) return 4
+        if (name.includes('財政政策')) return 5
+        return 999
+      }
+      
+      const orderA = getOrder(a.name)
+      const orderB = getOrder(b.name)
+      return orderA - orderB
+    })
+
+    return categories
+  } catch (error) {
+    console.error('Error parsing exam data:', error)
+    throw error
+  }
 }
 
 /**
