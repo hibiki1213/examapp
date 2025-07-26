@@ -98,7 +98,7 @@ export function FinalResults({ results, categoryName, onRestart, homeLink = "/",
 
           <div className="text-center p-4 bg-gray-50 rounded-2xl">
             <div className="text-2xl font-bold text-gray-900 mb-1">
-              {sessionScore.totalMaxScore}
+              {sessionScore.maxScore}
             </div>
             <div className="text-sm text-gray-500">
               満点

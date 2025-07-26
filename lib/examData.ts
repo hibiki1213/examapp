@@ -576,6 +576,7 @@ function createQuestion2(categoryId: string, questionNumber: number, questionTex
   let match
   let blankIndex = 0
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   while ((match = blankPattern.exec(questionText)) !== null) {
     blanks.push({
       id: `${categoryId}-${questionNumber}-${blankIndex}`,
