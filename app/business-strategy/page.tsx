@@ -66,7 +66,7 @@ export default function BusinessStrategyHome() {
           <p className="text-xl text-gray-600 mb-8">
             各章を選択してテストを開始してください
           </p>
-          <div className="flex justify-center space-x-4">
+          <div className="flex justify-center space-x-4 flex-wrap gap-y-2">
             <Link 
               href="/"
               className="inline-flex items-center px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
@@ -78,6 +78,12 @@ export default function BusinessStrategyHome() {
               className="inline-flex items-center px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
             >
               産業組織論
+            </Link>
+            <Link 
+              href="/multinational-enterprise"
+              className="inline-flex items-center px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
+            >
+              多国籍企業論
             </Link>
           </div>
         </div>

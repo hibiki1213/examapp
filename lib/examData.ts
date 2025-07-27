@@ -864,3 +864,206 @@ function translateCategoryName(categoryName: string): string {
   
   return translations[categoryName] || categoryName
 } 
+
+/**
+ * 多国籍企業論用のexam4.mdファイルをパースする
+ */
+export async function parseExam4Data(): Promise<Category[]> {
+  try {
+    const filePath = path.join(process.cwd(), 'exam4.md')
+    const fileContent = await fs.readFile(filePath, 'utf-8')
+    
+    // 各回のセクションを分離
+    const sections = fileContent.split(/### \*\*多国籍企業論 第(\d+)回：(.+?)\*\*/)
+    
+    const categories: Category[] = []
+    
+    // sectionsは[空文字, 回数, タイトル, コンテンツ, 回数, タイトル, コンテンツ, ...]の形
+    for (let i = 1; i < sections.length; i += 3) {
+      const chapterNumber = parseInt(sections[i])
+      const chapterTitle = sections[i + 1]
+      const chapterContent = sections[i + 2] || ''
+      
+      // 問題セクションと解答セクションを分離
+      const contentSections = chapterContent.split('**解答集**')
+      const problemsSection = contentSections[0] || ''
+      const answersSection = contentSections[1] || ''
+      
+      // 問題をパース
+      const questions = parseProblemsSection4(problemsSection, chapterNumber)
+      
+      // 解答をパース
+      const answers = parseAnswersSection4(answersSection)
+      
+      // カテゴリを作成
+      if (questions.length > 0) {
+        const category = saveCategory4(chapterNumber, chapterTitle, questions, answers)
+        categories.push(category)
+      }
+    }
+    
+    // カテゴリを回数順に並び替え
+    categories.sort((a, b) => {
+      const aNum = parseInt(a.id.replace('chapter-', ''))
+      const bNum = parseInt(b.id.replace('chapter-', ''))
+      return aNum - bNum
+    })
+    
+    return categories
+  } catch (error) {
+    console.error('Error parsing exam4 data:', error)
+    throw error
+  }
+}
+
+/**
+ * 多国籍企業論の問題セクションをパース
+ */
+function parseProblemsSection4(content: string, chapterNumber: number): { questionNumber: number, text: string }[] {
+  const questions: { questionNumber: number, text: string }[] = []
+  const lines = content.split('\n')
+  
+  let inQuestion = false
+  let currentQuestionText = ''
+  let currentQuestionNumber = 0
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // 問題を検出（番号付きの問題）
+    const questionMatch = line.match(/^(\d+)\.\s+(.+)/)
+    if (questionMatch) {
+      // 前の問題を保存
+      if (inQuestion && currentQuestionText.trim()) {
+        questions.push({
+          questionNumber: currentQuestionNumber,
+          text: currentQuestionText.trim()
+        })
+      }
+      
+      currentQuestionNumber = parseInt(questionMatch[1])
+      currentQuestionText = questionMatch[2]
+      inQuestion = true
+      continue
+    }
+    
+    // 問題の内容を蓄積（**問題集**や**解答集**は除外）
+    if (inQuestion && line && !line.startsWith('**問題集**') && !line.startsWith('**解答集**') && !line.startsWith('---')) {
+      if (currentQuestionText) {
+        currentQuestionText += '\n' + line
+      } else {
+        currentQuestionText = line
+      }
+    }
+  }
+  
+  // 最後の問題を保存
+  if (inQuestion && currentQuestionText.trim()) {
+    questions.push({
+      questionNumber: currentQuestionNumber,
+      text: currentQuestionText.trim()
+    })
+  }
+  
+  return questions
+}
+
+/**
+ * 多国籍企業論の解答セクションをパース
+ */
+function parseAnswersSection4(content: string): { [questionNumber: number]: string[] } {
+  const answers: { [questionNumber: number]: string[] } = {}
+  const lines = content.split('\n')
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // 解答を検出（番号付きの解答）
+    const answerMatch = line.match(/^(\d+)\.\s+(.+)$/)
+    if (answerMatch) {
+      const questionNumber = parseInt(answerMatch[1])
+      const answerText = answerMatch[2]
+      
+      // 複数の解答がある場合の処理
+      let answerList: string[] = []
+      
+      // **答え**形式の場合
+      const boldAnswers = answerText.match(/\*\*([^*]+)\*\*/g)
+      if (boldAnswers) {
+        answerList = boldAnswers.map(answer => answer.replace(/\*\*/g, '').trim())
+      } else {
+        // 通常の形式（カンマ区切りや「、」区切り）
+        answerList = answerText.split(/[、，]/).map(ans => ans.trim()).filter(ans => ans)
+      }
+      
+      answers[questionNumber] = answerList
+    }
+  }
+  
+  return answers
+}
+
+/**
+ * 多国籍企業論用のカテゴリ作成
+ */
+function saveCategory4(
+  chapterNumber: number,
+  chapterTitle: string,
+  questions: { questionNumber: number, text: string }[],
+  answers: { [questionNumber: number]: string[] }
+): Category {
+  const categoryId = `chapter-${chapterNumber}`
+  const categoryName = `第${chapterNumber}回：${chapterTitle}`
+  
+  const parsedQuestions: Question[] = []
+  
+  questions.forEach((questionData) => {
+    const { questionNumber, text } = questionData
+    const question = createQuestion2(categoryId, questionNumber, text) // 企業戦略論と同じ虫食いパターンを使用
+    
+    // 解答を設定
+    if (answers[questionNumber]) {
+      question.blanks.forEach((blank, blankIndex) => {
+        if (answers[questionNumber][blankIndex]) {
+          blank.answer = answers[questionNumber][blankIndex]
+        }
+      })
+    }
+    
+    if (question.blanks.length > 0) {
+      parsedQuestions.push(question)
+    }
+  })
+  
+  return {
+    id: categoryId,
+    name: categoryName,
+    nameEn: `Chapter ${chapterNumber}: ${translateChapterTitle(chapterTitle)}`,
+    description: `多国籍企業論の「${categoryName}」に関する問題集`,
+    questionCount: parsedQuestions.length,
+    questions: parsedQuestions
+  }
+}
+
+/**
+ * 章タイトルを英語に翻訳
+ */
+function translateChapterTitle(title: string): string {
+  const translations: { [key: string]: string } = {
+    '多国籍企業とは何か': 'What are Multinational Enterprises',
+    '多国籍企業の活動様式': 'Activity Patterns of Multinational Enterprises',
+    '多国籍企業に関する古典理論': 'Classical Theories of Multinational Enterprises',
+    'ハイマー理論': 'Hymer Theory',
+    'プロダクトライフサイクルと国際生産': 'Product Life Cycle and International Production',
+    '内部化理論と取引コスト経済学': 'Internalization Theory and Transaction Cost Economics',
+    'ダニングの折衷フレームワーク': 'Dunning\'s Eclectic Framework',
+    '企業の国際化プロセス': 'Process of Corporate Internationalization',
+    '多国籍企業の進化理論': 'Evolutionary Theory of Multinational Enterprises',
+    'ダイナミックケイパビリティ': 'Dynamic Capabilities',
+    '多国籍企業とイノベーション': 'Multinational Enterprises and Innovation',
+    '多国籍企業と雇用・国際分業': 'Multinational Enterprises and Employment・International Division of Labor',
+    'これからの多国籍企業とその理論': 'Future of Multinational Enterprises and Their Theories'
+  }
+  
+  return translations[title] || title
+} 

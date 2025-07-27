@@ -69,13 +69,19 @@ export default function Home() {
           href="/business-strategy"
           className="inline-flex items-center px-3 py-1.5 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
         >
-          企業経営
+          企業経営 →
         </Link>
         <Link 
           href="/industrial-organization"
           className="inline-flex items-center px-3 py-1.5 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
         >
-          産業組織論
+          産業組織論 →
+        </Link>
+        <Link 
+          href="/multinational-enterprise"
+          className="inline-flex items-center px-3 py-1.5 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
+        >
+          多国籍企業論 →
         </Link>
       </div>
 
@@ -99,6 +105,12 @@ export default function Home() {
               className="block mx-auto px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm w-fit"
             >
               産業組織論 →
+            </Link>
+            <Link 
+              href="/multinational-enterprise"
+              className="block mx-auto px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm w-fit"
+            >
+              多国籍企業論 →
             </Link>
           </div>
           
