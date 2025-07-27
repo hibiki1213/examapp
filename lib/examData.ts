@@ -621,3 +621,246 @@ function createQuestion2(categoryId: string, questionNumber: number, questionTex
     blanks: blanks
   }
 } 
+
+/**
+ * 産業組織論用のexam3.mdファイルをパースする
+ */
+export async function parseExam3Data(): Promise<Category[]> {
+  try {
+    const filePath = path.join(process.cwd(), 'exam3.md')
+    const fileContent = await fs.readFile(filePath, 'utf-8')
+    
+    // 問題セクションと解答セクションを分離
+    const sections = fileContent.split('### **産業組織論 テスト解答集**')
+    const problemsSection = sections[0]
+    const answersSection = sections[1] || ''
+    
+    // 問題をパース
+    const questionsByCategory = parseProblemsSection3(problemsSection)
+    
+    // 解答をパース
+    const answersByCategory = parseAnswersSection3(answersSection)
+    
+    // カテゴリを作成
+    const categories: Category[] = []
+    
+    Object.keys(questionsByCategory).forEach(categoryName => {
+      const category = saveCategory3(
+        categoryName,
+        questionsByCategory[categoryName],
+        answersByCategory[categoryName] || {}
+      )
+      if (category.questions.length > 0) {
+        categories.push(category)
+      }
+    })
+    
+    // カテゴリを適切な順序で並び替え（産業組織論は1つのカテゴリなので順序は関係ないが、一貫性のため）
+    categories.sort((a, b) => a.name.localeCompare(b.name))
+    
+    return categories
+  } catch (error) {
+    console.error('Error parsing exam3 data:', error)
+    throw error
+  }
+}
+
+/**
+ * 産業組織論の問題セクションをパース
+ */
+function parseProblemsSection3(content: string): { [categoryName: string]: { questionNumber: number, text: string }[] } {
+  const questionsByCategory: { [categoryName: string]: { questionNumber: number, text: string }[] } = {}
+  const lines = content.split('\n')
+  
+  let currentCategory = ''
+  let inQuestion = false
+  let currentQuestionText = ''
+  let currentQuestionNumber = 0
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // セクションヘッダーを検出（**セクション名 (英語名)**の形式）
+    const sectionMatch = line.match(/^\*\*([^(]+)\s*\([^)]+\)\*\*$/)
+    if (sectionMatch) {
+      // 前の問題を保存
+      if (inQuestion && currentQuestionText.trim() && currentCategory) {
+        if (!questionsByCategory[currentCategory]) {
+          questionsByCategory[currentCategory] = []
+        }
+        questionsByCategory[currentCategory].push({
+          questionNumber: currentQuestionNumber,
+          text: currentQuestionText.trim()
+        })
+      }
+      
+      currentCategory = sectionMatch[1].trim()
+      inQuestion = false
+      currentQuestionText = ''
+      currentQuestionNumber = 0
+      continue
+    }
+    
+    // 問題を検出（番号付きの問題）
+    const questionMatch = line.match(/^(\d+)\.\s+(.+)/)
+    if (questionMatch && currentCategory) {
+      // 前の問題を保存
+      if (inQuestion && currentQuestionText.trim()) {
+        if (!questionsByCategory[currentCategory]) {
+          questionsByCategory[currentCategory] = []
+        }
+        questionsByCategory[currentCategory].push({
+          questionNumber: currentQuestionNumber,
+          text: currentQuestionText.trim()
+        })
+      }
+      
+      currentQuestionNumber = parseInt(questionMatch[1])
+      currentQuestionText = questionMatch[2]
+      inQuestion = true
+      continue
+    }
+    
+    // 問題の内容を蓄積
+    if (inQuestion && line && !line.startsWith('---') && !line.startsWith('### ') && !line.startsWith('**')) {
+      if (currentQuestionText) {
+        currentQuestionText += '\n' + line
+      } else {
+        currentQuestionText = line
+      }
+    }
+  }
+  
+  // 最後の問題を保存
+  if (inQuestion && currentQuestionText.trim() && currentCategory) {
+    if (!questionsByCategory[currentCategory]) {
+      questionsByCategory[currentCategory] = []
+    }
+    questionsByCategory[currentCategory].push({
+      questionNumber: currentQuestionNumber,
+      text: currentQuestionText.trim()
+    })
+  }
+  
+  return questionsByCategory
+}
+
+/**
+ * 産業組織論の解答セクションをパース
+ */
+function parseAnswersSection3(content: string): { [categoryName: string]: { [questionNumber: number]: string[] } } {
+  const answersByCategory: { [categoryName: string]: { [questionNumber: number]: string[] } } = {}
+  const lines = content.split('\n')
+  
+  // 産業組織論は解答に章分けがないので、問題番号から逆算してカテゴリを判定
+  const categoryRanges = [
+    { name: '市場構造と効率性', start: 1, end: 4 },
+    { name: '企業行動と利潤最大化', start: 5, end: 7 },
+    { name: 'ゲーム理論', start: 8, end: 10 },
+    { name: '寡占市場モデル', start: 11, end: 16 },
+    { name: '価格戦略', start: 17, end: 22 },
+    { name: '企業統合と垂直的取引制限', start: 23, end: 26 },
+    { name: '計算問題のレビューポイント', start: 27, end: 28 }
+  ]
+  
+  // 各カテゴリを初期化
+  categoryRanges.forEach(range => {
+    answersByCategory[range.name] = {}
+  })
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // 解答を検出（番号付きの解答）
+    const answerMatch = line.match(/^(\d+)\.\s+(.+)$/)
+    if (answerMatch) {
+      const questionNumber = parseInt(answerMatch[1])
+      const answerText = answerMatch[2]
+      
+      // 問題番号からカテゴリを判定
+      const categoryInfo = categoryRanges.find(range => 
+        questionNumber >= range.start && questionNumber <= range.end
+      )
+      
+      if (categoryInfo) {
+        // 複数の解答がある場合の処理
+        let answers: string[] = []
+        
+        // **答え**形式の場合
+        const boldAnswers = answerText.match(/\*\*([^*]+)\*\*/g)
+        if (boldAnswers) {
+          answers = boldAnswers.map(answer => answer.replace(/\*\*/g, '').trim())
+        } else {
+          // 通常の形式（カンマ区切りや「と」区切り）
+          answers = answerText.split(/[、，と]/).map(ans => ans.trim()).filter(ans => ans)
+        }
+        
+        answersByCategory[categoryInfo.name][questionNumber] = answers
+      }
+    }
+  }
+  
+  return answersByCategory
+}
+
+/**
+ * 産業組織論用のカテゴリ作成
+ */
+function saveCategory3(
+  categoryName: string,
+  questions: { questionNumber: number, text: string }[],
+  answers: { [questionNumber: number]: string[] }
+): Category {
+  // カテゴリ名をIDに変換（英数字とハイフンのみ）
+  const categoryId = categoryName
+    .replace(/[^a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
+  
+  const parsedQuestions: Question[] = []
+  
+  questions.forEach((questionData) => {
+    const { questionNumber, text } = questionData
+    const question = createQuestion2(categoryId, questionNumber, text) // 企業戦略論と同じ虫食いパターンを使用
+    
+    // 解答を設定
+    if (answers[questionNumber]) {
+      question.blanks.forEach((blank, blankIndex) => {
+        if (answers[questionNumber][blankIndex]) {
+          blank.answer = answers[questionNumber][blankIndex]
+        }
+      })
+    }
+    
+    if (question.blanks.length > 0) {
+      parsedQuestions.push(question)
+    }
+  })
+  
+  return {
+    id: categoryId,
+    name: categoryName,
+    nameEn: translateCategoryName(categoryName),
+    description: `産業組織論の「${categoryName}」に関する問題集`,
+    questionCount: parsedQuestions.length,
+    questions: parsedQuestions
+  }
+}
+
+/**
+ * カテゴリ名を英語に翻訳
+ */
+function translateCategoryName(categoryName: string): string {
+  const translations: { [key: string]: string } = {
+    '市場構造と効率性': 'Market Structure and Efficiency',
+    '企業行動と利潤最大化': 'Firm Behavior and Profit Maximization',
+    'ゲーム理論': 'Game Theory',
+    '寡占市場モデル': 'Oligopoly Market Models',
+    '価格戦略': 'Pricing Strategies',
+    '企業統合と垂直的取引制限': 'Firm Integration and Vertical Restraints',
+    '計算問題のレビューポイント': 'Calculation Problem Review Points'
+  }
+  
+  return translations[categoryName] || categoryName
+} 

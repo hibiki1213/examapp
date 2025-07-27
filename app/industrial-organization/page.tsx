@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Category } from '@/types/exam'
 import { CategoryCard } from '@/components/CategoryCard'
 
-export default function BusinessStrategyHome() {
+export default function IndustrialOrganizationHome() {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -13,7 +13,7 @@ export default function BusinessStrategyHome() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('/api/business-strategy/categories')
+        const response = await fetch('/api/industrial-organization/categories')
         if (!response.ok) {
           throw new Error('Failed to fetch categories')
         }
@@ -61,10 +61,10 @@ export default function BusinessStrategyHome() {
       <div className="container mx-auto px-6 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            企業戦略論テスト対策
+            産業組織論テスト対策
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            各章を選択してテストを開始してください
+            市場構造と企業行動に関する理解を深めましょう
           </p>
           <div className="flex justify-center space-x-4">
             <Link 
@@ -74,10 +74,10 @@ export default function BusinessStrategyHome() {
               財政学
             </Link>
             <Link 
-              href="/industrial-organization"
+              href="/business-strategy"
               className="inline-flex items-center px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
             >
-              産業組織論
+              企業経営
             </Link>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function BusinessStrategyHome() {
             <CategoryCard 
               key={category.id} 
               category={category}
-              href={`/business-strategy/${category.id}`}
+              href={`/industrial-organization/${category.id}`}
             />
           ))}
         </div>

@@ -1,8 +1,9 @@
 import { Category } from '@/types/exam'
-import { parseExamData, parseExam2Data } from './examData'
+import { parseExamData, parseExam2Data, parseExam3Data } from './examData'
 
 let cachedExamData: Category[] | null = null
 let cachedExam2Data: Category[] | null = null
+let cachedExam3Data: Category[] | null = null
 
 /**
  * 財政学のexam.mdデータを読み込む
@@ -39,11 +40,35 @@ export async function loadExam2Data(): Promise<Category[]> {
 }
 
 /**
+ * 産業組織論のexam3.mdデータを読み込む
+ */
+export async function loadExam3Data(): Promise<Category[]> {
+  if (cachedExam3Data) {
+    return cachedExam3Data
+  }
+
+  try {
+    cachedExam3Data = await parseExam3Data()
+    return cachedExam3Data
+  } catch (error) {
+    console.error('Failed to load exam3 data:', error)
+    return []
+  }
+}
+
+/**
  * 財政学の特定カテゴリのデータを取得
  */
 export async function getCategoryData(categoryId: string): Promise<Category | null> {
   const data = await loadExamData()
   return data.find(category => category.id === categoryId) || null
+}
+
+/**
+ * 財政学の全カテゴリのデータを取得
+ */
+export async function getAllCategories(): Promise<Category[]> {
+  return await loadExamData()
 }
 
 /**
@@ -55,15 +80,23 @@ export async function getCategory2Data(categoryId: string): Promise<Category | n
 }
 
 /**
- * 財政学の全カテゴリを取得
- */
-export async function getAllCategories(): Promise<Category[]> {
-  return await loadExamData()
-}
-
-/**
- * 企業戦略論の全カテゴリを取得
+ * 企業戦略論の全カテゴリのデータを取得
  */
 export async function getAllCategories2(): Promise<Category[]> {
   return await loadExam2Data()
+}
+
+/**
+ * 産業組織論の特定カテゴリのデータを取得
+ */
+export async function getCategory3Data(categoryId: string): Promise<Category | null> {
+  const data = await loadExam3Data()
+  return data.find(category => category.id === categoryId) || null
+}
+
+/**
+ * 産業組織論の全カテゴリのデータを取得
+ */
+export async function getAllCategories3(): Promise<Category[]> {
+  return await loadExam3Data()
 } 

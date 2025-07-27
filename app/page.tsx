@@ -64,12 +64,18 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* デスクトップでの右上ボタン */}
-      <div className="hidden md:block absolute top-6 right-6 z-10">
+      <div className="hidden md:flex absolute top-6 right-6 z-10 space-x-2">
         <Link 
           href="/business-strategy"
           className="inline-flex items-center px-3 py-1.5 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
         >
-          企業経営論
+          企業経営
+        </Link>
+        <Link 
+          href="/industrial-organization"
+          className="inline-flex items-center px-3 py-1.5 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
+        >
+          産業組織論
         </Link>
       </div>
 
@@ -77,16 +83,22 @@ export default function Home() {
         {/* ヘッダー */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            財政学テスト対策
+            財政学学習アプリ
           </h1>
           
           {/* スマホでのボタン（タイトル下） */}
-          <div className="md:hidden mb-6">
+          <div className="md:hidden mb-6 space-y-2">
             <Link 
               href="/business-strategy"
-              className="inline-flex items-center px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
+              className="block mx-auto px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm w-fit"
             >
-              企業経営論
+              企業経営 →
+            </Link>
+            <Link 
+              href="/industrial-organization"
+              className="block mx-auto px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm w-fit"
+            >
+              産業組織論 →
             </Link>
           </div>
           
