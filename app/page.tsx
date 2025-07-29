@@ -83,6 +83,12 @@ export default function Home() {
         >
           多国籍企業論 →
         </Link>
+        <Link 
+          href="/health-economics"
+          className="inline-flex items-center px-3 py-1.5 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
+        >
+          医療経済学 →
+        </Link>
       </div>
 
       <div className="container mx-auto px-4 py-12">
@@ -111,6 +117,12 @@ export default function Home() {
               className="block mx-auto px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm w-fit"
             >
               多国籍企業論 →
+            </Link>
+            <Link 
+              href="/health-economics"
+              className="block mx-auto px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm w-fit"
+            >
+              医療経済学 →
             </Link>
           </div>
           

@@ -1067,3 +1067,204 @@ function translateChapterTitle(title: string): string {
   
   return translations[title] || title
 } 
+
+/**
+ * 医療経済学用のexam5.mdファイルをパースする
+ */
+export async function parseExam5Data(): Promise<Category[]> {
+  try {
+    const filePath = path.join(process.cwd(), 'exam5.md')
+    const fileContent = await fs.readFile(filePath, 'utf-8')
+    
+    // 各回のセクションを分離 - 正規表現を改良
+    const sections = fileContent.split(/#### \*\*第(\d+)回（([^）]+)） 医療経済学 (.+?)\*\*/)
+    
+    const categories: Category[] = []
+    
+    // sectionsは[空文字, 回数, 日付, タイトル, コンテンツ, 回数, 日付, タイトル, コンテンツ, ...]の形
+    for (let i = 1; i < sections.length; i += 4) {
+      const chapterNumberStr = sections[i]
+      const chapterDate = sections[i + 1]
+      const chapterTitle = sections[i + 2]
+      const chapterContent = sections[i + 3] || ''
+      
+      const chapterNumber = parseInt(chapterNumberStr)
+      if (isNaN(chapterNumber)) {
+        continue
+      }
+      
+      // 問題セクションと解答セクションを分離
+      const contentSections = chapterContent.split('**解答集**')
+      const problemsSection = contentSections[0] || ''
+      const answersSection = contentSections[1] || ''
+      
+      // 問題をパース
+      const questions = parseProblemsSection5(problemsSection, chapterNumber)
+      
+      // 解答をパース
+      const answers = parseAnswersSection5(answersSection)
+      
+      // カテゴリを作成
+      if (questions.length > 0) {
+        const category = saveCategory5(chapterNumber, chapterTitle, chapterDate, questions, answers)
+        categories.push(category)
+      }
+    }
+    
+    // カテゴリを回数順に並び替え
+    categories.sort((a, b) => {
+      const aNum = parseInt(a.id.replace('lecture-', ''))
+      const bNum = parseInt(b.id.replace('lecture-', ''))
+      return aNum - bNum
+    })
+    
+    return categories
+  } catch (error) {
+    console.error('Error parsing exam5 data:', error)
+    throw error
+  }
+}
+
+/**
+ * 医療経済学の問題セクションをパース
+ */
+function parseProblemsSection5(content: string, chapterNumber: number): { questionNumber: number, text: string }[] {
+  const questions: { questionNumber: number, text: string }[] = []
+  const lines = content.split('\n')
+  
+  let inQuestion = false
+  let currentQuestionText = ''
+  let currentQuestionNumber = 0
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // 問題を検出（番号付きの問題）
+    const questionMatch = line.match(/^(\d+)\.\s+(.+)/)
+    if (questionMatch) {
+      // 前の問題を保存
+      if (inQuestion && currentQuestionText.trim()) {
+        questions.push({
+          questionNumber: currentQuestionNumber,
+          text: currentQuestionText.trim()
+        })
+      }
+      
+      currentQuestionNumber = parseInt(questionMatch[1])
+      currentQuestionText = questionMatch[2]
+      inQuestion = true
+      continue
+    }
+    
+    // 問題の内容を蓄積（**問題集**や**解答集**は除外）
+    if (inQuestion && line && !line.startsWith('**問題集**') && !line.startsWith('**解答集**') && !line.startsWith('---')) {
+      if (currentQuestionText) {
+        currentQuestionText += '\n' + line
+      } else {
+        currentQuestionText = line
+      }
+    }
+  }
+  
+  // 最後の問題を保存
+  if (inQuestion && currentQuestionText.trim()) {
+    questions.push({
+      questionNumber: currentQuestionNumber,
+      text: currentQuestionText.trim()
+    })
+  }
+  
+  return questions
+}
+
+/**
+ * 医療経済学の解答セクションをパース
+ */
+function parseAnswersSection5(content: string): { [questionNumber: number]: string[] } {
+  const answers: { [questionNumber: number]: string[] } = {}
+  const lines = content.split('\n')
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // 解答を検出（番号付きの解答）
+    const answerMatch = line.match(/^(\d+)\.\s+(.+)$/)
+    if (answerMatch) {
+      const questionNumber = parseInt(answerMatch[1])
+      const answerText = answerMatch[2]
+      
+      // 複数の解答がある場合の処理（カンマ区切りや「、」区切り）
+      const answerList = answerText.split(/[、，]/).map(ans => ans.trim()).filter(ans => ans)
+      
+      answers[questionNumber] = answerList
+    }
+  }
+  
+  return answers
+}
+
+/**
+ * 医療経済学用のカテゴリ作成
+ */
+function saveCategory5(
+  chapterNumber: number,
+  chapterTitle: string,
+  chapterDate: string,
+  questions: { questionNumber: number, text: string }[],
+  answers: { [questionNumber: number]: string[] }
+): Category {
+  const categoryId = `lecture-${chapterNumber}`
+  const categoryName = `第${chapterNumber}回：${chapterTitle}`
+  
+  const parsedQuestions: Question[] = []
+  
+  questions.forEach((questionData) => {
+    const { questionNumber, text } = questionData
+    const question = createQuestion(questionNumber, categoryId, text) // 財政学と同じ虫食いパターンを使用（**__________**）
+    
+    // 解答を設定
+    if (answers[questionNumber]) {
+      question.blanks.forEach((blank, blankIndex) => {
+        if (answers[questionNumber][blankIndex]) {
+          blank.answer = answers[questionNumber][blankIndex]
+        }
+      })
+    }
+    
+    if (question.blanks.length > 0) {
+      parsedQuestions.push(question)
+    }
+  })
+  
+  return {
+    id: categoryId,
+    name: categoryName,
+    nameEn: `Lecture ${chapterNumber}: ${translateHealthEconomicsTitle(chapterTitle)}`,
+    description: `医療経済学の「${categoryName}」（${chapterDate}）に関する問題集`,
+    questionCount: parsedQuestions.length,
+    questions: parsedQuestions
+  }
+}
+
+/**
+ * 医療経済学の章タイトルを英語に翻訳
+ */
+function translateHealthEconomicsTitle(title: string): string {
+  const translations: { [key: string]: string } = {
+    '保険とリスク': 'Insurance and Risk',
+    '保険とリスク②': 'Insurance and Risk II',
+    'モラルハザード': 'Moral Hazard',
+    '健康に対する需要': 'Demand for Health',
+    '外部性と限定合理性': 'Externalities and Bounded Rationality',
+    '医療サービス供給と情報の非対称性': 'Healthcare Supply and Information Asymmetry',
+    '医療サービス供給と診療報酬制度': 'Healthcare Supply and Payment Systems',
+    '医療サービスのばらつき': 'Variation in Healthcare Services',
+    '医療の労働市場': 'Healthcare Labor Market',
+    '製薬企業': 'Pharmaceutical Companies',
+    '医療の経済評価': 'Economic Evaluation of Healthcare',
+    '介護の経済学': 'Economics of Long-term Care',
+    '政府の役割': 'Role of Government'
+  }
+  
+  return translations[title] || title
+} 

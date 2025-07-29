@@ -85,6 +85,12 @@ export default function MultinationalEnterpriseHome() {
             >
               産業組織論
             </Link>
+            <Link 
+              href="/health-economics"
+              className="inline-flex items-center px-4 py-2 text-gray-600 text-sm hover:text-gray-800 transition-colors border border-gray-300 rounded-lg hover:border-gray-400 bg-white/50 backdrop-blur-sm"
+            >
+              医療経済学
+            </Link>
           </div>
         </div>
 
